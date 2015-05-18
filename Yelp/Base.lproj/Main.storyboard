@@ -168,7 +168,7 @@
                         <rect key="frame" x="0.0" y="0.0" width="320" height="568"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <tableView clipsSubviews="YES" contentMode="scaleToFill" fixedFrame="YES" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="63" sectionHeaderHeight="22" sectionFooterHeight="22" translatesAutoresizingMaskIntoConstraints="NO" id="sEp-S9-thV">
+                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="63" sectionHeaderHeight="22" sectionFooterHeight="22" translatesAutoresizingMaskIntoConstraints="NO" id="sEp-S9-thV">
                                 <rect key="frame" x="0.0" y="0.0" width="320" height="568"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                 <prototypes>
@@ -213,6 +213,12 @@
                             </tableView>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                        <constraints>
+                            <constraint firstItem="sEp-S9-thV" firstAttribute="leading" secondItem="zTp-nv-VIl" secondAttribute="leading" id="DY4-Nw-Wk5"/>
+                            <constraint firstAttribute="trailing" secondItem="sEp-S9-thV" secondAttribute="trailing" id="Mfx-Ld-ZVo"/>
+                            <constraint firstItem="sEp-S9-thV" firstAttribute="top" secondItem="zTp-nv-VIl" secondAttribute="top" id="bBk-WE-hGK"/>
+                            <constraint firstItem="Khr-Zy-LUp" firstAttribute="top" secondItem="sEp-S9-thV" secondAttribute="bottom" id="oJH-7j-M6d"/>
+                        </constraints>
                     </view>
                     <navigationItem key="navigationItem" title="Filters" id="4iu-rM-Auj">
                         <barButtonItem key="leftBarButtonItem" title="Cancel" id="XZG-Ss-oM2">
