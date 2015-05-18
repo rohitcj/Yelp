@@ -147,9 +147,9 @@
                         </barButtonItem>
                     </navigationItem>
                     <connections>
-                        <outlet property="activityIndicator" destination="tRD-X1-urc" id="Idd-Nk-0C9"/>
                         <outlet property="navigationItem" destination="cP0-cX-HYZ" id="5wY-rM-Vgw"/>
                         <outlet property="tableView" destination="GkW-Jk-Mbn" id="SyI-C3-Yyd"/>
+                        <outlet property="tableViewActivityIndicator" destination="tRD-X1-urc" id="y6k-Ei-neD"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="3TY-d1-POB" userLabel="First Responder" sceneMemberID="firstResponder"/>

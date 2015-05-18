@@ -11,9 +11,10 @@ import UIKit
 class BusinessesViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, UISearchBarDelegate, UISearchControllerDelegate, FiltersViewControllerDelegate {
 
     @IBOutlet weak var tableView: UITableView!
-    @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
+    @IBOutlet weak var tableViewActivityIndicator: UIActivityIndicatorView!
     
     var businesses: [Business]!
+    var offset: Int = 0
     var yelpClient: YelpClient!
     var searchBar: UISearchBar!
     var searchFilters: Dictionary<String, String> = [:]
@@ -28,8 +29,17 @@ class BusinessesViewController: UIViewController, UITableViewDataSource, UITable
         tableView.rowHeight = UITableViewAutomaticDimension // use as per autolayout rules
         tableView.estimatedRowHeight = 120 // for scroll bar & scroll height
         self.navigationItem.titleView = searchBarTitleView()
-        loadDefaultSearchTerm()
-        loadBusinesses()
+        
+        // footer
+        var tableFooterView: UIView = UIView(frame: CGRect(x: 0, y: 0, width: 320, height: 50))
+        var footerActivityIndicator: UIActivityIndicatorView = UIActivityIndicatorView(activityIndicatorStyle: UIActivityIndicatorViewStyle.Gray)
+        footerActivityIndicator.startAnimating()
+        footerActivityIndicator.center = tableFooterView.center
+        tableFooterView.addSubview(footerActivityIndicator)
+        self.tableView.tableFooterView = tableFooterView
+        
+        loadDefaults()
+        loadBusinesses(false)
     }
 
     override func didReceiveMemoryWarning() {
@@ -56,7 +66,16 @@ class BusinessesViewController: UIViewController, UITableViewDataSource, UITable
     func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCellWithIdentifier("BusinessCell", forIndexPath: indexPath) as! BusinessCell
         cell.business = businesses[indexPath.row]
+        
+        // load more
+        if indexPath.row == businesses.count - 1 {
+            loadBusinesses(true)
+        }
         return cell
+    }
+    
+    func tableView(tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
+        return 1
     }
 
     func searchBarTitleView() -> UIView {
@@ -95,20 +114,20 @@ class BusinessesViewController: UIViewController, UITableViewDataSource, UITable
     */
     
     func searchBar(searchBar: UISearchBar, textDidChange searchText: String) {
-        println("In searchBar textDidChange")
+        //println("In searchBar textDidChange")
         searchBar.showsCancelButton = true;
     }
     
     func searchBarSearchButtonClicked(searchBar: UISearchBar) {
-        println("In searchBarSearchButtonClicked")
+        //println("In searchBarSearchButtonClicked")
         self.searchTerm = searchBar.text
         searchBar.showsCancelButton = false
         searchBar.resignFirstResponder()
-        processSearch(self.searchTerm)
+        processSearch(self.searchTerm, isSubsequentReload: false)
     }
     
     func searchBarCancelButtonClicked(searchBar: UISearchBar) {
-        println("In searchBarCancelButtonClicked")
+        //println("In searchBarCancelButtonClicked")
         stopSearch()
     }
     
@@ -120,41 +139,73 @@ class BusinessesViewController: UIViewController, UITableViewDataSource, UITable
         self.resignFirstResponder()
     }
     
-    func processSearch(searchText: String) {
-        activityIndicator.startAnimating()
-        self.searchTerm = searchBar.text.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet())
-        Business.searchWithTerm(self.searchTerm, completion: { (businesses: [Business]!, error: NSError!) ->
-            Void in
-            self.businesses = businesses
-            self.tableView.reloadData()
-        })
-        activityIndicator.stopAnimating()
-    }
-    
-    func processSearch(searchTerm: String, filters: [String: AnyObject], sortMode: Int, deals: Bool) {
-        activityIndicator.startAnimating()
-        var sortMode: YelpSortMode = YelpSortMode(rawValue: sortMode)!
-        var categories = filters["categories"] as! [String]?
+    func processSearch(searchTerm: String, filters: [String: AnyObject]?, sortMode: Int?, deals: Bool?, isSubsequentReload: Bool) {
+        tableViewActivityIndicator.startAnimating()
+        
+        if !isSubsequentReload {
+            self.offset = 0
+        }
+        
+        var yelpSortMode: YelpSortMode?
+        if var sortMode = sortMode {
+            yelpSortMode = YelpSortMode(rawValue: sortMode)
+        }
+        
+        var categories: [String]?
+        if var filters = filters {
+            categories = filters["categories"] as! [String]?
+        }
         if self.searchTerm.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet()).isEmpty {
             self.searchTerm = defaultSearchTerm
         }
-        println("Search Term: \(searchTerm), Sort Mode: \(sortMode.description), Categories: \(categories), Deals: \(deals)")
-        Business.searchWithTerm(searchTerm, sort: sortMode, categories: categories, deals: deals) {
+        //println("Search Term: \(searchTerm), Sort Mode: \(sortMode?.description), Categories: \(categories), Deals: \(deals)")
+        
+        var searchParameters : [String: AnyObject] = ["term": self.searchTerm, "limit": 20, "offset": self.offset]
+        Business.searchWithParameters(searchParameters, term: self.searchTerm, sort: yelpSortMode, categories: categories, deals: deals) {
             (businesses: [Business]!, error: NSError!) ->
             Void in
-            self.businesses = businesses
+            if error != nil {
+                println("Error: \(error.description)")
+                self.tableViewActivityIndicator.stopAnimating()
+            }
+            if let businesses = businesses {
+                if businesses.count == 0 {
+                    println("No businesses returned")
+                    self.tableViewActivityIndicator.stopAnimating()
+                }
+            }
+            if isSubsequentReload {
+                for index in 0 ..< businesses.count {
+                    self.businesses.append(businesses[index])
+                    self.stopSearch()
+                }
+            }
+            else {
+                self.businesses = businesses
+            }
             self.tableView.reloadData()
+        
+            if !isSubsequentReload {
+                self.tableView.scrollRectToVisible(CGRectMake(0, 0, 1, 1), animated: true)
+                // or self.tableView.scrollToNearestSelectedRowAtScrollPosition(UITableViewScrollPosition.Top, animated: true)
+                // or self.tableView.scrollToRowAtIndexPath(NSIndexPath(index: 0), atScrollPosition: UITableViewScrollPosition.Top, animated: true)
+            }
+            self.offset += self.businesses.count
         }
-        activityIndicator.stopAnimating()
+        tableViewActivityIndicator.stopAnimating()
+    }
+    
+    func processSearch(searchText: String, isSubsequentReload: Bool) {
+        self.processSearch(searchText, filters: nil, sortMode: nil, deals: nil, isSubsequentReload: isSubsequentReload)
     }
     
     // MARK: - Misc. Helpers
     
-    func loadBusinesses() {
-        self.processSearch(self.searchTerm)
+    func loadBusinesses(isSubsequentReload: Bool) {
+        self.processSearch(self.searchTerm, isSubsequentReload: isSubsequentReload)
     }
     
-    func loadDefaultSearchTerm() {
+    func loadDefaults() {
         if var searchTermDefault = defaults.objectForKey(lastSearchTermKey) as? String {
             self.searchTerm = searchTermDefault
             self.searchBar.text = self.searchTerm
@@ -172,7 +223,7 @@ class BusinessesViewController: UIViewController, UITableViewDataSource, UITable
     
     func filtersViewController(filtersViewController: FiltersViewController, didUpdateFilters filters: [String : AnyObject], sortMode: Int, deals: Bool) {
         self.searchTerm = searchBar.text.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet())
-        processSearch(self.searchTerm, filters: filters, sortMode: sortMode, deals: deals)
+        processSearch(self.searchTerm, filters: filters, sortMode: sortMode, deals: deals, isSubsequentReload: false)
     }
     
     
